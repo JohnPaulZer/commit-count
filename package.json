@@ -1,0 +1,22 @@
+{
+  "name": "github-commit-counter",
+  "version": "1.0.0",
+  "description": "Count GitHub commits for a user in public or private repositories through a backend proxy.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": [
+    "github",
+    "commits",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@lottiefiles/dotlottie-wc": "^0.9.12",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0"
+  }
+}

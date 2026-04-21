@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Commit Counter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="hero">
+      <p class="eyebrow">GitHub Commit Counter</p>
+      <h1>Count your commits</h1>
+      <p class="lede">Enter your GitHub username. Add a repository if you want one repo only.</p>
+    </section>
+
+    <section class="quick-guide" aria-label="Quick instructions">
+      <article class="guide-card">
+        <p class="guide-number">01</p>
+        <h2>Username</h2>
+        <p>Your GitHub account name.</p>
+      </article>
+      <article class="guide-card">
+        <p class="guide-number">02</p>
+        <h2>Repository</h2>
+        <p>Optional. Use <code>repo-name</code>, <code>owner/repo</code>, or a GitHub repo URL.</p>
+      </article>
+      <article class="guide-card">
+        <p class="guide-number">03</p>
+        <h2>Count</h2>
+        <p>Run the check and the result will appear on the right.</p>
+      </article>
+    </section>
+
+    <section class="panel">
+      <form id="commit-form" class="commit-form" novalidate>
+        <div class="panel-head">
+          <p class="panel-label">Input</p>
+          <p class="panel-copy">Fill in the fields and run the count.</p>
+        </div>
+
+        <label class="field">
+          <span>GitHub username</span>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="off"
+            placeholder="octocat"
+            required
+          >
+        </label>
+
+        <label class="field">
+          <span>Repository</span>
+          <input
+            id="repository"
+            name="repository"
+            type="text"
+            autocomplete="off"
+            placeholder="Leave blank for all repos, or enter owner/repo"
+          >
+        </label>
+
+        <button id="submit-button" type="submit">Count commits</button>
+      </form>
+
+      <div id="status-card" class="status-card is-idle" aria-live="polite">
+        <div class="panel-head">
+          <p class="panel-label">Result</p>
+          <p class="panel-copy">Your latest count will show here.</p>
+        </div>
+        <p class="status-label">Ready</p>
+        <h2 id="status-title">Waiting for input</h2>
+        <p id="status-text" class="status-text">
+          Supports single-repo counts and all-owned-repository counts through the backend.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <div id="loading-modal" class="modal" hidden>
+    <div class="modal-backdrop modal-backdrop-static"></div>
+    <div
+      class="modal-panel modal-panel-loading"
+      role="status"
+      aria-live="polite"
+      aria-labelledby="loading-modal-title"
+      aria-describedby="loading-modal-text"
+    >
+      <dotlottie-wc
+        id="loading-player"
+        class="loading-modal-player"
+        src="/assets/lottie/loading.lottie"
+        autoplay
+        loop
+      ></dotlottie-wc>
+      <h2 id="loading-modal-title">Counting commits...</h2>
+      <p id="loading-modal-text" class="loading-modal-text">Please wait while the repository data is checked.</p>
+    </div>
+  </div>
+
+  <div id="error-modal" class="modal" hidden>
+    <button type="button" class="modal-backdrop" data-close-modal aria-label="Close error dialog"></button>
+    <div
+      class="modal-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="error-modal-title"
+      aria-describedby="error-modal-text"
+    >
+      <div class="modal-head">
+        <p class="modal-label">Error</p>
+        <button id="error-modal-dismiss" type="button" class="modal-icon-button" aria-label="Close">
+          X
+        </button>
+      </div>
+      <h2 id="error-modal-title">Something went wrong</h2>
+      <p id="error-modal-text" class="modal-text"></p>
+      <p id="error-modal-hint" class="modal-hint" hidden></p>
+      <button id="error-modal-close" type="button" class="modal-action">Okay</button>
+    </div>
+  </div>
+
+  <script type="module" src="/vendor/@lottiefiles/dotlottie-wc/dist/dotlottie-wc.js"></script>
+  <script src="/assets/js/app.js"></script>
+</body>
+</html>
