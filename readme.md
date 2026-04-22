@@ -27,7 +27,8 @@ Private repositories need a classic GitHub token pasted into the app.
 
 4. Open [http://localhost:3000](http://localhost:3000)
 5. Enter the GitHub username.
-6. Optional: enter a repository if you want one repo only.
+6. Optional: enter one repository only.
+   Use a GitHub repository URL in HTTPS or SSH format.
 7. If you need private repo access, create a classic token:
    - Open [https://github.com/settings/tokens/new](https://github.com/settings/tokens/new)
    - Click `Generate new token (classic)`
@@ -39,6 +40,6 @@ Private repositories need a classic GitHub token pasted into the app.
 
 ## Notes
 
-- The repository field supports `repo-name`, `owner/repo`, `https://github.com/owner/repo`, and `git@github.com:owner/repo.git`
+- Repository URL examples: `https://github.com/owner/repo` or `git@github.com:owner/repo.git`
 - GitHub must match the commit author to the username you enter
 - Organization repositories may still require SSO or organization approval

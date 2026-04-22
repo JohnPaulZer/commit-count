@@ -1,25 +1,63 @@
 const path = require("path");
 const express = require("express");
+const helmet = require("helmet");
 const dotenv = require("dotenv");
+const { rateLimit } = require("express-rate-limit");
 
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
-const fallbackGitHubToken = process.env.GITHUB_TOKEN || "";
 const publicDirectory = path.resolve(__dirname, "..", "public");
 const vendorDirectory = path.resolve(__dirname, "..", "node_modules");
+const isDevelopment = app.get("env") === "development";
+const apiLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  handler: (_req, res, _next, options) => {
+    res.status(options.statusCode).json({
+      errorType: "rate_limit",
+      title: "Too many requests",
+      message: "Too many requests were sent to this API.",
+      hint: "Please wait a moment and try again.",
+    });
+  },
+});
 
-app.use(express.json());
+app.disable("x-powered-by");
+app.use(express.json({ limit: "10kb" }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      "upgrade-insecure-requests": isDevelopment ? null : [],
+      "script-src": ["'self'", "'wasm-unsafe-eval'"],
+      "worker-src": ["'self'", "blob:"],
+    },
+  },
+}));
 app.use("/vendor", express.static(vendorDirectory));
 app.use(express.static(publicDirectory));
+app.use("/api", apiLimiter);
 
 app.post("/api/count-commits", async (req, res) => {
   const username = String(req.body?.username || "").trim();
   const owner = String(req.body?.owner || "").trim();
   const repo = String(req.body?.repo || "").trim();
   const branch = String(req.body?.branch || "").trim();
-  const githubContext = createGitHubContext(req.body?.githubToken);
+  let githubContext;
+
+  try {
+    githubContext = createGitHubContext(req.body?.githubToken);
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({
+      errorType: error.errorType || "request_failed",
+      title: error.title || "The request is invalid.",
+      message: error.message || "Unable to process this request.",
+      hint: error.hint || "",
+    });
+  }
 
   if (!username) {
     return res.status(400).json({
@@ -244,7 +282,7 @@ async function fetchAuthenticatedUser(githubContext) {
           notFoundMessage: "Unable to read the authenticated GitHub user.",
           notFoundTitle: "Authenticated user not found",
           notFoundType: "authenticated_user_not_found",
-          notFoundHint: "Check the GitHub token in the form, or update GITHUB_TOKEN in .env and restart the backend.",
+          notFoundHint: "Check the classic GitHub token in the form and try again.",
         });
       }
 
@@ -372,11 +410,7 @@ function buildGitHubHeaders(githubContext) {
 
 function buildRepositoryNotFoundMessage(githubContext) {
   if (!githubContext.token) {
-    return "Repository not found. If this is a private repo, add a GitHub token in the form or in GITHUB_TOKEN.";
-  }
-
-  if (githubContext.tokenType === "fine-grained") {
-    return "Repository not found. If you are an invited collaborator on someone else's organization repo, GitHub may block fine-grained tokens here. Try a classic PAT with repo scope, or ask the organization to approve another access method.";
+    return "Repository not found. If this is a private repo, paste a classic GitHub token into the form.";
   }
 
   return "Repository not found, or the token does not have access to it.";
@@ -385,10 +419,6 @@ function buildRepositoryNotFoundMessage(githubContext) {
 function buildRepositoryNotFoundHint(githubContext) {
   if (!githubContext.token) {
     return "Use a GitHub token for private repositories, or double-check the owner and repository name.";
-  }
-
-  if (githubContext.tokenType === "fine-grained") {
-    return "If you are an invited collaborator on another organization's private repo, try a classic PAT with repo scope instead.";
   }
 
   return "Check the owner, repository name, and whether your token can read that repository.";
@@ -423,7 +453,7 @@ async function buildGitHubError(
       errorType: "invalid_token",
       title: "Token invalid or expired",
       message: "The GitHub token is invalid or expired.",
-      hint: "Create a new token, paste it into the form, or update GITHUB_TOKEN in .env and restart the backend.",
+      hint: "Create a new classic token, paste it into the form, and try again.",
     });
   }
 
@@ -435,9 +465,9 @@ async function buildGitHubError(
     return createTypedError({
       statusCode: 429,
       errorType: "rate_limit",
-      title: "GitHub rate limit reached",
-      message: `GitHub API rate limit reached. Try again after ${readableReset}.`,
-      hint: "Wait for the reset time, or use an authenticated token with enough API access.",
+      title: "Try again later",
+      message: `Try again after ${readableReset}.`,
+      hint: "Wait for the reset time, or use your own classic token.",
     });
   }
 
@@ -511,11 +541,21 @@ async function isEmptyRepositoryResponse(response) {
 
 function createGitHubContext(rawToken) {
   const requestToken = String(rawToken || "").trim();
-  const token = requestToken || fallbackGitHubToken;
+  const tokenType = detectTokenType(requestToken);
+
+  if (requestToken && tokenType !== "classic") {
+    throw createTypedError({
+      statusCode: 400,
+      errorType: "token_format",
+      title: "Use a classic GitHub token",
+      message: "Only classic GitHub tokens are supported in this app.",
+      hint: "Create a classic token that starts with ghp_ and make sure repo is checked in Scopes.",
+    });
+  }
 
   return {
-    token,
-    tokenType: detectTokenType(token),
+    token: requestToken,
+    tokenType,
     authenticatedUserPromise: null,
   };
 }

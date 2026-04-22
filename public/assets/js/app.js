@@ -10,7 +10,6 @@ const statusTitle = document.querySelector("#status-title");
 const statusText = document.querySelector("#status-text");
 const statusLabel = document.querySelector(".status-label");
 const loadingModal = document.querySelector("#loading-modal");
-const loadingPlayer = document.querySelector("#loading-player");
 const loadingModalTitle = document.querySelector("#loading-modal-title");
 const loadingModalText = document.querySelector("#loading-modal-text");
 const errorModal = document.querySelector("#error-modal");
@@ -98,15 +97,18 @@ form.addEventListener("submit", async (event) => {
   setStatus({
     label: "Loading",
     title: repository
-      ? "Checking the repository and scanning commits..."
+      ? "Scanning repository..."
       : usingGitHubToken
-        ? "Scanning repositories your token can access..."
-        : "Scanning public owned repositories...",
+        ? "Scanning your accessible repos..."
+        : "Scanning public repos...",
     text: repository
-      ? `Looking for commits authored by ${username} in ${repository.owner}/${repository.repo}${usingGitHubToken ? " using your GitHub token." : "."}`
+      ? `Looking for ${username}'s commits in ${repository.owner}/${repository.repo}.`
       : usingGitHubToken
-        ? `Looking for commits authored by ${username} across public repositories, plus owned private repositories if the token belongs to that same account.`
-        : `Looking for commits authored by ${username} across public repositories owned by that account.`,
+        ? `Checking public repos and any owned private repos available to ${username}'s token.`
+        : `Checking public repositories owned by ${username}.`,
+    loadingText: repository || !usingGitHubToken
+      ? undefined
+      : "",
     variant: "is-loading",
   });
 
@@ -131,7 +133,7 @@ function setBusy(isBusy) {
   submitButton.textContent = isBusy ? "Counting..." : "Count commits";
 }
 
-function setStatus({ label, title, text, variant }) {
+function setStatus({ label, title, text, loadingText = text, variant }) {
   statusCard.classList.remove(...statusVariants);
   statusCard.classList.add(variant);
   statusLabel.textContent = label;
@@ -140,7 +142,7 @@ function setStatus({ label, title, text, variant }) {
   setLoadingModalState({
     isVisible: variant === "is-loading",
     title,
-    text,
+    text: loadingText,
   });
 }
 
@@ -303,23 +305,21 @@ function showTokenHelpModal() {
 function setLoadingModalState({ isVisible, title, text }) {
   if (isVisible) {
     loadingModalTitle.textContent = title;
-    loadingModalText.textContent = text;
+    loadingModalText.textContent = text || "";
+    loadingModalText.hidden = !text;
     loadingModal.hidden = false;
     syncOverlayState();
-
-    if (loadingPlayer?.dotLottie) {
-      loadingPlayer.dotLottie.play();
-    }
-
+    window.loadingLottieController?.play?.();
+    requestAnimationFrame(() => {
+      window.loadingLottieController?.resize?.();
+    });
     return;
   }
 
   if (!loadingModal.hidden) {
     loadingModal.hidden = true;
-
-    if (loadingPlayer?.dotLottie) {
-      loadingPlayer.dotLottie.pause();
-    }
+    loadingModalText.hidden = false;
+    window.loadingLottieController?.pause?.();
   }
 
   syncOverlayState();
@@ -354,6 +354,7 @@ function getErrorLabel(errorType) {
     no_repositories_found: "No repositories",
     branch_not_found: "Branch error",
     no_commits_found: "No commits found",
+    token_format: "Token format",
     invalid_token: "Token error",
     sso_authorization_required: "SSO required",
     classic_pat_blocked: "Token policy",
