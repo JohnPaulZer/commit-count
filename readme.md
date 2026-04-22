@@ -10,6 +10,10 @@ This app counts how many commits a GitHub user made:
 Public repositories work without a token.
 Private repositories need a classic GitHub token pasted into the app.
 
+## Live Link
+
+[https://commit-counter.vercel.app](https://commit-counter.vercel.app)
+
 ## Process
 
 1. Copy `.env.example` to `.env`.
