@@ -1,6 +1,6 @@
-import { DotLottie } from "/vendor/@lottiefiles/dotlottie-web/dist/index.js";
+import { DotLottie } from "/assets/vendor/dotlottie-web/dist/index.js";
 
-DotLottie.setWasmUrl("/vendor/@lottiefiles/dotlottie-web/dist/dotlottie-player.wasm");
+DotLottie.setWasmUrl("/assets/vendor/dotlottie-web/dist/dotlottie-player.wasm");
 
 const loadingCanvas = document.querySelector("#loading-player");
 const loadingModal = document.querySelector("#loading-modal");

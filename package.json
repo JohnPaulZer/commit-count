@@ -4,6 +4,7 @@
   "description": "Count GitHub commits for a user in public or private repositories through a backend proxy.",
   "main": "src/server.js",
   "scripts": {
+    "postinstall": "node scripts/copy-lottie-runtime.js",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js"
   },

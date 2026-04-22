@@ -9,7 +9,6 @@ dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 const publicDirectory = path.resolve(__dirname, "..", "public");
-const vendorDirectory = path.resolve(__dirname, "..", "node_modules");
 const isDevelopment = app.get("env") === "development";
 const apiLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
@@ -37,7 +36,6 @@ app.use(helmet({
     },
   },
 }));
-app.use("/vendor", express.static(vendorDirectory));
 app.use(express.static(publicDirectory));
 app.use("/api", apiLimiter);
 
