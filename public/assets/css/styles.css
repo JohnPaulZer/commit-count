@@ -82,7 +82,9 @@ body.modal-open {
 }
 
 .support-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.96rem;
   font-weight: 600;
@@ -90,6 +92,13 @@ body.modal-open {
   text-decoration: none;
   color: #111;
   transition: color 160ms ease, opacity 160ms ease;
+}
+
+.support-link-icon {
+  width: 1.50rem;
+  height: 1.50rem;
+  flex: 0 0 auto;
+  fill: #db61a2;
 }
 
 .support-link:hover {
