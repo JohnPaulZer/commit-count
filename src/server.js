@@ -48,16 +48,21 @@ app.post("/api/count-commits", async (req, res) => {
         branch,
       });
       const selectedBranch = branch || repository.default_branch;
+      const isEmptyRepository = repository.size === 0;
 
       if (totalCommits === 0) {
         throw createTypedError({
           statusCode: 422,
           errorType: "no_commits_found",
           title: "No matching commits found",
-          message: branch
-            ? `${user.login} has no commits in ${repository.full_name} on branch "${selectedBranch}".`
-            : `${user.login} has no commits in ${repository.full_name}.`,
-          hint: "Check the username and repository. If the repo is correct, this account may simply have no commits there yet.",
+          message: isEmptyRepository
+            ? `${repository.full_name} is empty and does not have any commits yet.`
+            : branch
+              ? `${user.login} has no commits in ${repository.full_name} on branch "${selectedBranch}".`
+              : `${user.login} has no commits in ${repository.full_name}.`,
+          hint: isEmptyRepository
+            ? "Push the first commit to that repository, or choose another repository with commit history."
+            : "Check the username and repository. If the repo is correct, this account may simply have no commits there yet.",
         });
       }
 
@@ -331,6 +336,10 @@ async function countCommits({ owner, repo, username, branch }) {
     });
 
     if (!response.ok) {
+      if (await isEmptyRepositoryResponse(response)) {
+        return 0;
+      }
+
       throw await buildGitHubError(response, {
         notFoundMessage: branch
           ? `Unable to read commit history for branch "${branch}".`
@@ -486,6 +495,19 @@ async function buildGitHubError(
     message: `GitHub API request failed with status ${response.status}.`,
     hint: "Try again in a moment or review the input values and token access.",
   });
+}
+
+async function isEmptyRepositoryResponse(response) {
+  if (response.status !== 409) {
+    return false;
+  }
+
+  try {
+    const errorData = await response.clone().json();
+    return String(errorData.message || "").toLowerCase().includes("repository is empty");
+  } catch {
+    return false;
+  }
 }
 
 function detectTokenType(token) {
