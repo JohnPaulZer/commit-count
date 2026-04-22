@@ -256,23 +256,29 @@ function displayResult(result, fallbackUsername) {
   const commitLabel = result.totalCommits === 1 ? "commit" : "commits";
 
   if (result.mode === "all_repositories") {
-    const repoLabel = result.repositoryCount === 1 ? "repository" : "repositories";
-    const reposWithCommitsLabel = result.repositoriesWithCommits === 1 ? "repo" : "repos";
     const displayName = result.username || fallbackUsername;
+    const repositoriesWithCommitsText = typeof result.repositoriesWithCommits === "number"
+      ? ` Found commits in ${result.repositoriesWithCommits} ${result.repositoriesWithCommits === 1 ? "repo" : "repos"}.`
+      : "";
+    const repositoryCountText = typeof result.repositoryCount === "number"
+      ? ` across ${result.repositoryCount} ${result.repositoryCount === 1 ? "repository" : "repositories"}`
+      : " across the searched repositories";
 
     setStatus({
       label: "Result",
       title: `${result.totalCommits} ${commitLabel}`,
-      text: `${displayName} authored ${result.totalCommits} ${commitLabel} across ${result.repositoryCount} ${repoLabel}. Found commits in ${result.repositoriesWithCommits} ${reposWithCommitsLabel}. Scope: ${result.scopeLabel}.`,
+      text: `${displayName} authored ${result.totalCommits} ${commitLabel}${repositoryCountText}.${repositoriesWithCommitsText} Scope: ${result.scopeLabel}.`,
       variant: "is-success",
     });
     return;
   }
 
+  const visibilityText = result.visibility ? ` (${result.visibility})` : "";
+
   setStatus({
     label: "Result",
     title: `${result.totalCommits} ${commitLabel}`,
-    text: `${fallbackUsername} authored ${result.totalCommits} ${commitLabel} in ${result.repoFullName} (${result.visibility}).`,
+    text: `${fallbackUsername} authored ${result.totalCommits} ${commitLabel} in ${result.repoFullName}${visibilityText}.`,
     variant: "is-success",
   });
 }

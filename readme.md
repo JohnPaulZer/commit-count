@@ -9,6 +9,7 @@ This app counts how many commits a GitHub user made:
 
 Public repositories work without a token.
 Private repositories need a classic GitHub token pasted into the app.
+You can also set a classic token in `.env` with `GITHUB_TOKEN=...` so the backend can reuse it automatically.
 
 ## Live Link
 
@@ -17,6 +18,7 @@ Private repositories need a classic GitHub token pasted into the app.
 ## Process
 
 1. Copy `.env.example` to `.env`.
+   
 2. Install dependencies:
 
    ```bash
