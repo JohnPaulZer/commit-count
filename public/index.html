@@ -17,7 +17,7 @@
     <section class="hero">
       <p class="eyebrow">GitHub Commit Counter</p>
       <h1>Count your commits</h1>
-      <p class="lede">Enter your GitHub username. Add a repository if you want one repo only.</p>
+      <p class="lede">Enter your GitHub username, optionally paste a token, and count public or private repo commits without editing the backend.</p>
     </section>
 
     <section class="quick-guide" aria-label="Quick instructions">
@@ -33,6 +33,11 @@
       </article>
       <article class="guide-card">
         <p class="guide-number">03</p>
+        <h2>Token</h2>
+        <p>Optional. Paste a GitHub token to access private repos or get higher GitHub API limits.</p>
+      </article>
+      <article class="guide-card">
+        <p class="guide-number">04</p>
         <h2>Count</h2>
         <p>Run the check and the result will appear on the right.</p>
       </article>
@@ -68,6 +73,33 @@
           >
         </label>
 
+        <label class="field">
+          <span>GitHub token</span>
+          <input
+            id="github-token"
+            name="githubToken"
+            type="password"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="Optional: paste your classic token here"
+          >
+        </label>
+
+        <p class="field-hint">
+          Optional. Paste your classic GitHub token here for private repositories or higher GitHub API limits. The token is only sent with this request.
+        </p>
+
+        <button
+          id="token-help-button"
+          class="token-help-trigger"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="token-help-modal"
+        >
+          How to get a token
+        </button>
+
         <button id="submit-button" type="submit">Count commits</button>
       </form>
 
@@ -79,10 +111,14 @@
         <p class="status-label">Ready</p>
         <h2 id="status-title">Waiting for input</h2>
         <p id="status-text" class="status-text">
-          Supports single-repo counts and all-owned-repository counts through the backend.
+          Supports single-repo counts, public scans, and private repository access when you provide a GitHub token.
         </p>
       </div>
     </section>
+
+    <p class="support-footer">
+      <a class="support-link" href="https://github.com/sponsors/JohnPaulZer">Support JohnPaulZer</a>
+    </p>
   </main>
 
   <div id="loading-modal" class="modal" hidden>
@@ -125,6 +161,33 @@
       <p id="error-modal-text" class="modal-text"></p>
       <p id="error-modal-hint" class="modal-hint" hidden></p>
       <button id="error-modal-close" type="button" class="modal-action">Okay</button>
+    </div>
+  </div>
+
+  <div id="token-help-modal" class="modal" hidden>
+    <button type="button" class="modal-backdrop" data-close-token-modal aria-label="Close token tutorial"></button>
+    <div
+      class="modal-panel modal-panel-token"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="token-help-modal-title"
+      aria-describedby="token-help-modal-note"
+    >
+      <div class="modal-head">
+        <p class="modal-label modal-label-token">Token Tutorial</p>
+        <button id="token-help-modal-dismiss" type="button" class="modal-icon-button" aria-label="Close">
+          X
+        </button>
+      </div>
+      <h2 id="token-help-modal-title">How to get your classic GitHub token</h2>
+      <ol class="token-steps token-steps-modal">
+        <li>Open this page: <a href="https://github.com/settings/tokens/new" target="_blank" rel="noreferrer">https://github.com/settings/tokens/new</a></li>
+        <li>Click <code>Generate new token (classic)</code>.</li>
+        <li>Type any token name and choose an expiration date.</li>
+        <li>In <code>Scopes</code>, click <code>repo</code>.</li>
+        <li>Click <code>Generate token</code>, copy it, and paste it into the field above.</li>
+      </ol>
+      <button id="token-help-modal-close" type="button" class="modal-action">Close</button>
     </div>
   </div>
 

@@ -1,6 +1,8 @@
 const form = document.querySelector("#commit-form");
 const usernameInput = document.querySelector("#username");
 const repositoryInput = document.querySelector("#repository");
+const githubTokenInput = document.querySelector("#github-token");
+const tokenHelpButton = document.querySelector("#token-help-button");
 const submitButton = document.querySelector("#submit-button");
 const pageShell = document.querySelector(".page-shell");
 const statusCard = document.querySelector("#status-card");
@@ -17,6 +19,9 @@ const errorModalText = document.querySelector("#error-modal-text");
 const errorModalHint = document.querySelector("#error-modal-hint");
 const errorModalClose = document.querySelector("#error-modal-close");
 const errorModalDismiss = document.querySelector("#error-modal-dismiss");
+const tokenHelpModal = document.querySelector("#token-help-modal");
+const tokenHelpModalClose = document.querySelector("#token-help-modal-close");
+const tokenHelpModalDismiss = document.querySelector("#token-help-modal-dismiss");
 
 const statusVariants = ["is-idle", "is-loading", "is-success", "is-error"];
 let lastFocusedElement = null;
@@ -28,9 +33,26 @@ errorModal.addEventListener("click", (event) => {
     hideErrorModal();
   }
 });
+tokenHelpButton.addEventListener("click", showTokenHelpModal);
+tokenHelpModalClose.addEventListener("click", hideTokenHelpModal);
+tokenHelpModalDismiss.addEventListener("click", hideTokenHelpModal);
+tokenHelpModal.addEventListener("click", (event) => {
+  if (event.target.matches("[data-close-token-modal]")) {
+    hideTokenHelpModal();
+  }
+});
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !errorModal.hidden) {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  if (!tokenHelpModal.hidden) {
+    hideTokenHelpModal();
+    return;
+  }
+
+  if (!errorModal.hidden) {
     hideErrorModal();
   }
 });
@@ -40,6 +62,8 @@ form.addEventListener("submit", async (event) => {
 
   const username = usernameInput.value.trim();
   const repositoryValue = repositoryInput.value.trim();
+  const githubToken = githubTokenInput.value.trim();
+  const usingGitHubToken = Boolean(githubToken);
 
   if (!username) {
     presentError({
@@ -75,10 +99,14 @@ form.addEventListener("submit", async (event) => {
     label: "Loading",
     title: repository
       ? "Checking the repository and scanning commits..."
-      : "Scanning all owned repositories...",
+      : usingGitHubToken
+        ? "Scanning repositories your token can access..."
+        : "Scanning public owned repositories...",
     text: repository
-      ? `Looking for commits authored by ${username} in ${repository.owner}/${repository.repo}.`
-      : `Looking for commits authored by ${username} across all owned repositories.`,
+      ? `Looking for commits authored by ${username} in ${repository.owner}/${repository.repo}${usingGitHubToken ? " using your GitHub token." : "."}`
+      : usingGitHubToken
+        ? `Looking for commits authored by ${username} across public repositories, plus owned private repositories if the token belongs to that same account.`
+        : `Looking for commits authored by ${username} across public repositories owned by that account.`,
     variant: "is-loading",
   });
 
@@ -88,6 +116,7 @@ form.addEventListener("submit", async (event) => {
       repo: repository?.repo || "",
       username,
       branch: "",
+      githubToken,
     });
     displayResult(result, username);
   } catch (error) {
@@ -192,7 +221,7 @@ function parseRepository({ repositoryValue, defaultOwner }) {
   };
 }
 
-async function fetchCommitCount({ owner, repo, username, branch }) {
+async function fetchCommitCount({ owner, repo, username, branch, githubToken }) {
   const response = await fetch("/api/count-commits", {
     method: "POST",
     headers: {
@@ -203,6 +232,7 @@ async function fetchCommitCount({ owner, repo, username, branch }) {
       repo,
       username,
       branch,
+      githubToken,
     }),
   });
 
@@ -263,6 +293,13 @@ function showErrorModal({ title, message, hint }) {
   errorModalDismiss.focus();
 }
 
+function showTokenHelpModal() {
+  lastFocusedElement = document.activeElement;
+  tokenHelpModal.hidden = false;
+  syncOverlayState();
+  tokenHelpModalDismiss.focus();
+}
+
 function setLoadingModalState({ isVisible, title, text }) {
   if (isVisible) {
     loadingModalTitle.textContent = title;
@@ -293,15 +330,18 @@ function hideErrorModal() {
     return;
   }
 
-  const restoreTarget = lastFocusedElement instanceof HTMLElement && document.contains(lastFocusedElement)
-    ? lastFocusedElement
-    : submitButton;
+  restoreFocusFromModal(submitButton);
+  errorModal.hidden = true;
+  syncOverlayState();
+}
 
-  if (errorModal.contains(document.activeElement)) {
-    restoreTarget.focus();
+function hideTokenHelpModal() {
+  if (tokenHelpModal.hidden) {
+    return;
   }
 
-  errorModal.hidden = true;
+  restoreFocusFromModal(tokenHelpButton);
+  tokenHelpModal.hidden = true;
   syncOverlayState();
 }
 
@@ -352,7 +392,23 @@ function toErrorDetails(error, fallback = {}) {
 }
 
 function syncOverlayState() {
-  const hasVisibleOverlay = !loadingModal.hidden || !errorModal.hidden;
+  const hasVisibleOverlay = !loadingModal.hidden || !errorModal.hidden || !tokenHelpModal.hidden;
   pageShell.inert = hasVisibleOverlay;
   document.body.classList.toggle("modal-open", hasVisibleOverlay);
+}
+
+function restoreFocusFromModal(fallbackElement) {
+  const restoreTarget = lastFocusedElement instanceof HTMLElement && document.contains(lastFocusedElement)
+    ? lastFocusedElement
+    : fallbackElement;
+
+  if (
+    document.activeElement instanceof HTMLElement &&
+    (
+      errorModal.contains(document.activeElement) ||
+      tokenHelpModal.contains(document.activeElement)
+    )
+  ) {
+    restoreTarget.focus();
+  }
 }

@@ -5,8 +5,12 @@
   --paper: #ffffff;
   --ink: #22242a;
   --muted: #737882;
-  --accent: #31c6f4;
-  --accent-deep: #1498c2;
+  --accent: #c084fc;
+  --accent-deep: #8b5cf6;
+  --accent-soft: #e9d5ff;
+  --accent-rgb: 192, 132, 252;
+  --accent-deep-rgb: 139, 92, 246;
+  --accent-soft-rgb: 233, 213, 255;
   --line: rgba(34, 36, 42, 0.12);
   --success: #4be28a;
   --error: #ff7272;
@@ -22,22 +26,11 @@ body {
   min-height: 100vh;
   font-family: "Space Grotesk", sans-serif;
   color: var(--ink);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)),
-    linear-gradient(90deg, rgba(34, 36, 42, 0.03) 1px, transparent 1px),
-    linear-gradient(rgba(34, 36, 42, 0.03) 1px, transparent 1px),
-    var(--bg);
-  background-size: auto, 36px 36px, 36px 36px, auto;
+  background: radial-gradient(125% 125% at 50% 10%, #fff 40%, #7c3aed 100%);
 }
 
 body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(circle at top center, rgba(49, 198, 244, 0.12), transparent 24%),
-    radial-gradient(circle at bottom right, rgba(20, 152, 194, 0.09), transparent 28%);
-  pointer-events: none;
+  content: none;
 }
 
 body.modal-open {
@@ -83,10 +76,30 @@ body.modal-open {
   color: var(--muted);
 }
 
+.support-footer {
+  margin: 1.6rem 0 2.75rem;
+  text-align: center;
+}
+
+.support-link {
+  display: inline-block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.96rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: #111;
+  transition: color 160ms ease, opacity 160ms ease;
+}
+
+.support-link:hover {
+  color: #111;
+}
+
 .quick-guide {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 1.25rem;
 }
 
@@ -113,7 +126,7 @@ body.modal-open {
 
 .guide-card code {
   font-family: "IBM Plex Mono", monospace;
-  color: #9de7ff;
+  color: var(--accent-soft);
 }
 
 .guide-number {
@@ -188,6 +201,13 @@ body.modal-open {
   gap: 0.45rem;
 }
 
+.field-hint {
+  margin: -0.4rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(244, 247, 251, 0.68);
+}
+
 .field span,
 .status-label {
   font-family: "IBM Plex Mono", monospace;
@@ -214,9 +234,66 @@ body.modal-open {
 
 .field input:focus {
   outline: none;
-  border-color: rgba(49, 198, 244, 0.65);
+  border-color: rgba(var(--accent-rgb), 0.7);
   transform: translateY(-1px);
-  box-shadow: 0 0 0 5px rgba(49, 198, 244, 0.12);
+  box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0.16);
+}
+
+.token-help-trigger {
+  justify-self: start;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(var(--accent-soft-rgb), 0.34);
+  color: var(--accent-soft);
+  background: rgba(var(--accent-soft-rgb), 0.1);
+  box-shadow: none;
+}
+
+.token-help-trigger:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: none;
+  background: rgba(var(--accent-soft-rgb), 0.16);
+}
+
+.token-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: rgba(244, 247, 251, 0.84);
+}
+
+.token-steps li {
+  line-height: 1.6;
+}
+
+.token-steps li + li {
+  margin-top: 0.35rem;
+}
+
+.token-steps code {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--accent-soft);
+}
+
+.token-links {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.token-links a {
+  color: var(--accent-soft);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+  word-break: break-word;
+}
+
+.token-note {
+  margin: 0;
+  line-height: 1.6;
+  color: rgba(244, 247, 251, 0.74);
+}
+
+.token-note code {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--accent-soft);
 }
 
 button {
@@ -226,15 +303,15 @@ button {
   padding: 0.95rem 1.15rem;
   font: inherit;
   font-weight: 700;
-  color: #091116;
+  color: #241335;
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
-  box-shadow: 0 16px 28px rgba(20, 152, 194, 0.28);
+  box-shadow: 0 16px 28px rgba(var(--accent-deep-rgb), 0.3);
   transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
 button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 18px 32px rgba(20, 152, 194, 0.34);
+  box-shadow: 0 18px 32px rgba(var(--accent-deep-rgb), 0.38);
 }
 
 button:disabled {
@@ -293,7 +370,13 @@ button:disabled {
   padding: 1.6rem 1.8rem 1.8rem;
   text-align: center;
   background:
-    radial-gradient(circle at top center, rgba(49, 198, 244, 0.16), transparent 38%),
+    radial-gradient(circle at top center, rgba(var(--accent-rgb), 0.18), transparent 38%),
+    linear-gradient(180deg, #23242b, #1b1c22);
+}
+
+.modal-panel-token {
+  background:
+    radial-gradient(circle at top right, rgba(var(--accent-rgb), 0.18), transparent 34%),
     linear-gradient(180deg, #23242b, #1b1c22);
 }
 
@@ -311,6 +394,10 @@ button:disabled {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--error);
+}
+
+.modal-label-token {
+  color: var(--accent);
 }
 
 .modal-icon-button {
@@ -346,7 +433,11 @@ button:disabled {
 }
 
 .modal-hint {
-  color: rgba(157, 231, 255, 0.86);
+  color: rgba(var(--accent-soft-rgb), 0.9);
+}
+
+.token-steps-modal {
+  margin-top: 1rem;
 }
 
 .modal-action {
@@ -398,7 +489,7 @@ button:disabled {
 
 .status-card.is-loading {
   background:
-    radial-gradient(circle at top right, rgba(49, 198, 244, 0.18), transparent 32%),
+    radial-gradient(circle at top right, rgba(var(--accent-rgb), 0.22), transparent 32%),
     linear-gradient(180deg, #24252b, #1b1c22);
 }
 

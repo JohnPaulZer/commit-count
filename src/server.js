@@ -6,8 +6,7 @@ dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
-const githubToken = process.env.GITHUB_TOKEN || "";
-const githubTokenType = detectTokenType(githubToken);
+const fallbackGitHubToken = process.env.GITHUB_TOKEN || "";
 const publicDirectory = path.resolve(__dirname, "..", "public");
 const vendorDirectory = path.resolve(__dirname, "..", "node_modules");
 
@@ -20,6 +19,7 @@ app.post("/api/count-commits", async (req, res) => {
   const owner = String(req.body?.owner || "").trim();
   const repo = String(req.body?.repo || "").trim();
   const branch = String(req.body?.branch || "").trim();
+  const githubContext = createGitHubContext(req.body?.githubToken);
 
   if (!username) {
     return res.status(400).json({
@@ -31,14 +31,14 @@ app.post("/api/count-commits", async (req, res) => {
   }
 
   try {
-    const user = await fetchUser(username);
+    const user = await fetchUser(username, githubContext);
 
     if (repo) {
       const resolvedOwner = owner || username;
-      const repository = await fetchRepository({ owner: resolvedOwner, repo });
+      const repository = await fetchRepository({ owner: resolvedOwner, repo }, githubContext);
 
       if (branch) {
-        await fetchBranch({ owner: resolvedOwner, repo, branch });
+        await fetchBranch({ owner: resolvedOwner, repo, branch }, githubContext);
       }
 
       const totalCommits = await countCommits({
@@ -46,7 +46,7 @@ app.post("/api/count-commits", async (req, res) => {
         repo,
         username,
         branch,
-      });
+      }, githubContext);
       const selectedBranch = branch || repository.default_branch;
       const isEmptyRepository = repository.size === 0;
 
@@ -73,11 +73,11 @@ app.post("/api/count-commits", async (req, res) => {
         visibility: repository.private ? "private" : "public",
         branch: selectedBranch,
         defaultBranch: repository.default_branch,
-        authenticated: Boolean(githubToken),
+        authenticated: Boolean(githubContext.token),
       });
     }
 
-    const repoCollection = await fetchOwnedRepositories(username);
+    const repoCollection = await fetchOwnedRepositories(username, githubContext);
 
     if (repoCollection.repositories.length === 0) {
       throw createTypedError({
@@ -98,7 +98,7 @@ app.post("/api/count-commits", async (req, res) => {
         repo: repository.name,
         username,
         branch: "",
-      });
+      }, githubContext);
 
       totalCommits += commitCount;
 
@@ -123,7 +123,7 @@ app.post("/api/count-commits", async (req, res) => {
       repositoryCount: repoCollection.repositories.length,
       repositoriesWithCommits,
       scopeLabel: repoCollection.scopeLabel,
-      authenticated: Boolean(githubToken),
+      authenticated: Boolean(githubContext.token),
       username: user.login,
     });
   } catch (error) {
@@ -140,28 +140,28 @@ app.listen(port, () => {
   console.log(`GitHub Commit Counter running at http://localhost:${port}`);
 });
 
-async function fetchRepository({ owner, repo }) {
+async function fetchRepository({ owner, repo }, githubContext) {
   const response = await fetch(
     `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
     {
-      headers: buildGitHubHeaders(),
+      headers: buildGitHubHeaders(githubContext),
     },
   );
 
   if (!response.ok) {
     throw await buildGitHubError(response, {
-      notFoundMessage: buildRepositoryNotFoundMessage(),
+      notFoundMessage: buildRepositoryNotFoundMessage(githubContext),
       notFoundTitle: "Repository not found",
       notFoundType: "repository_not_found",
-      notFoundHint: buildRepositoryNotFoundHint(),
+      notFoundHint: buildRepositoryNotFoundHint(githubContext),
     });
   }
 
   return response.json();
 }
 
-async function fetchOwnedRepositories(username) {
-  const authenticatedUser = await fetchAuthenticatedUser();
+async function fetchOwnedRepositories(username, githubContext) {
+  const authenticatedUser = await fetchAuthenticatedUser(githubContext);
   const canReadOwnedPrivateRepositories = authenticatedUser
     && authenticatedUser.login.toLowerCase() === username.toLowerCase();
 
@@ -171,12 +171,12 @@ async function fetchOwnedRepositories(username) {
       per_page: "100",
       sort: "updated",
       direction: "desc",
-    });
+    }, githubContext);
 
     return {
       repositories,
       scopeLabel: "public and owned private repositories",
-      scopeHint: "This scan includes repositories owned by this account that your backend token can access.",
+      scopeHint: "This scan includes repositories owned by this account that your GitHub token can access.",
     };
   }
 
@@ -188,6 +188,7 @@ async function fetchOwnedRepositories(username) {
       sort: "updated",
       direction: "desc",
     },
+    githubContext,
   );
 
   return {
@@ -197,11 +198,11 @@ async function fetchOwnedRepositories(username) {
   };
 }
 
-async function fetchUser(username) {
+async function fetchUser(username, githubContext) {
   const response = await fetch(
     `https://api.github.com/users/${encodeURIComponent(username)}`,
     {
-      headers: buildGitHubHeaders(),
+      headers: buildGitHubHeaders(githubContext),
     },
   );
 
@@ -227,17 +228,15 @@ async function fetchUser(username) {
   return response.json();
 }
 
-let authenticatedUserPromise;
-
-async function fetchAuthenticatedUser() {
-  if (!githubToken) {
+async function fetchAuthenticatedUser(githubContext) {
+  if (!githubContext.token) {
     return null;
   }
 
-  if (!authenticatedUserPromise) {
-    authenticatedUserPromise = (async () => {
+  if (!githubContext.authenticatedUserPromise) {
+    githubContext.authenticatedUserPromise = (async () => {
       const response = await fetch("https://api.github.com/user", {
-        headers: buildGitHubHeaders(),
+        headers: buildGitHubHeaders(githubContext),
       });
 
       if (!response.ok) {
@@ -245,7 +244,7 @@ async function fetchAuthenticatedUser() {
           notFoundMessage: "Unable to read the authenticated GitHub user.",
           notFoundTitle: "Authenticated user not found",
           notFoundType: "authenticated_user_not_found",
-          notFoundHint: "Check the backend token and restart the server after updating it.",
+          notFoundHint: "Check the GitHub token in the form, or update GITHUB_TOKEN in .env and restart the backend.",
         });
       }
 
@@ -253,14 +252,14 @@ async function fetchAuthenticatedUser() {
     })();
   }
 
-  return authenticatedUserPromise;
+  return githubContext.authenticatedUserPromise;
 }
 
-async function fetchBranch({ owner, repo, branch }) {
+async function fetchBranch({ owner, repo, branch }, githubContext) {
   const response = await fetch(
     `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches/${encodeURIComponent(branch)}`,
     {
-      headers: buildGitHubHeaders(),
+      headers: buildGitHubHeaders(githubContext),
     },
   );
 
@@ -276,7 +275,7 @@ async function fetchBranch({ owner, repo, branch }) {
   return response.json();
 }
 
-async function fetchPaginatedResults(baseUrl, queryParams) {
+async function fetchPaginatedResults(baseUrl, queryParams, githubContext) {
   const results = [];
   let page = 1;
 
@@ -290,7 +289,7 @@ async function fetchPaginatedResults(baseUrl, queryParams) {
     url.searchParams.set("page", String(page));
 
     const response = await fetch(url, {
-      headers: buildGitHubHeaders(),
+      headers: buildGitHubHeaders(githubContext),
     });
 
     if (!response.ok) {
@@ -313,7 +312,7 @@ async function fetchPaginatedResults(baseUrl, queryParams) {
   }
 }
 
-async function countCommits({ owner, repo, username, branch }) {
+async function countCommits({ owner, repo, username, branch }, githubContext) {
   let total = 0;
   let page = 1;
   const perPage = 100;
@@ -332,7 +331,7 @@ async function countCommits({ owner, repo, username, branch }) {
     }
 
     const response = await fetch(url, {
-      headers: buildGitHubHeaders(),
+      headers: buildGitHubHeaders(githubContext),
     });
 
     if (!response.ok) {
@@ -358,37 +357,37 @@ async function countCommits({ owner, repo, username, branch }) {
   }
 }
 
-function buildGitHubHeaders() {
+function buildGitHubHeaders(githubContext) {
   const headers = {
     Accept: "application/vnd.github+json",
     "User-Agent": "github-commit-counter",
   };
 
-  if (githubToken) {
-    headers.Authorization = `Bearer ${githubToken}`;
+  if (githubContext.token) {
+    headers.Authorization = `Bearer ${githubContext.token}`;
   }
 
   return headers;
 }
 
-function buildRepositoryNotFoundMessage() {
-  if (!githubToken) {
-    return "Repository not found. If this is a private repo, add GITHUB_TOKEN to the backend.";
+function buildRepositoryNotFoundMessage(githubContext) {
+  if (!githubContext.token) {
+    return "Repository not found. If this is a private repo, add a GitHub token in the form or in GITHUB_TOKEN.";
   }
 
-  if (githubTokenType === "fine-grained") {
+  if (githubContext.tokenType === "fine-grained") {
     return "Repository not found. If you are an invited collaborator on someone else's organization repo, GitHub may block fine-grained tokens here. Try a classic PAT with repo scope, or ask the organization to approve another access method.";
   }
 
   return "Repository not found, or the token does not have access to it.";
 }
 
-function buildRepositoryNotFoundHint() {
-  if (!githubToken) {
-    return "Use a backend token for private repositories, or double-check the owner and repository name.";
+function buildRepositoryNotFoundHint(githubContext) {
+  if (!githubContext.token) {
+    return "Use a GitHub token for private repositories, or double-check the owner and repository name.";
   }
 
-  if (githubTokenType === "fine-grained") {
+  if (githubContext.tokenType === "fine-grained") {
     return "If you are an invited collaborator on another organization's private repo, try a classic PAT with repo scope instead.";
   }
 
@@ -424,7 +423,7 @@ async function buildGitHubError(
       errorType: "invalid_token",
       title: "Token invalid or expired",
       message: "The GitHub token is invalid or expired.",
-      hint: "Create a new token, update .env, and restart the backend server.",
+      hint: "Create a new token, paste it into the form, or update GITHUB_TOKEN in .env and restart the backend.",
     });
   }
 
@@ -450,7 +449,7 @@ async function buildGitHubError(
       errorType: "sso_authorization_required",
       title: "SSO authorization required",
       message: apiMessage,
-      hint: "Authorize the token for your organization in GitHub, then restart the backend and try again.",
+      hint: "Authorize the token for your organization in GitHub, then try again with the updated token.",
     });
   }
 
@@ -508,6 +507,17 @@ async function isEmptyRepositoryResponse(response) {
   } catch {
     return false;
   }
+}
+
+function createGitHubContext(rawToken) {
+  const requestToken = String(rawToken || "").trim();
+  const token = requestToken || fallbackGitHubToken;
+
+  return {
+    token,
+    tokenType: detectTokenType(token),
+    authenticatedUserPromise: null,
+  };
 }
 
 function detectTokenType(token) {
