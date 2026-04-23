@@ -49,3 +49,8 @@ You can also set a classic token in `.env` with `GITHUB_TOKEN=...` so the backen
 - Repository URL examples: `https://github.com/owner/repo` or `git@github.com:owner/repo.git`
 - GitHub must match the commit author to the username you enter
 - Organization repositories may still require SSO or organization approval
+
+## Screenshots
+<img width="1665" height="959" alt="image" src="https://github.com/user-attachments/assets/9c91bb55-ce69-4d1c-990f-e98f81a38abd" />
+
+<img width="1678" height="959" alt="image" src="https://github.com/user-attachments/assets/b01b58dc-740a-48aa-897f-465f709ca2a2" />
