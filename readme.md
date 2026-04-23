@@ -13,7 +13,7 @@ You can also set a classic token in `.env` with `GITHUB_TOKEN=...` so the backen
 
 ## Live Link
 
-[https://commit-counter.vercel.app](https://commit-counter.vercel.app)
+https://gitcommitcount.vercel.app/
 
 ## Process
 
